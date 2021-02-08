@@ -19,6 +19,7 @@ var defaultContentDisposition = staticValue(null)
 var defaultStorageClass = staticValue('STANDARD')
 var defaultSSE = staticValue(null)
 var defaultSSEKMS = staticValue(null)
+var defaultTagging = staticValue(null)
 
 function defaultKey (req, file, cb) {
   crypto.randomBytes(16, function (err, raw) {
@@ -58,7 +59,8 @@ function collect (storage, req, file, cb) {
     storage.getContentDisposition.bind(storage, req, file),
     storage.getStorageClass.bind(storage, req, file),
     storage.getSSE.bind(storage, req, file),
-    storage.getSSEKMS.bind(storage, req, file)
+    storage.getSSEKMS.bind(storage, req, file),
+    storage.getTagging.bind(storage, req, file)
   ], function (err, values) {
     if (err) return cb(err)
 
@@ -76,7 +78,8 @@ function collect (storage, req, file, cb) {
         contentType: contentType,
         replacementStream: replacementStream,
         serverSideEncryption: values[7],
-        sseKmsKeyId: values[8]
+        sseKmsKeyId: values[8],
+        tagging: value[9]
       })
     })
   })
@@ -154,6 +157,13 @@ function S3Storage (opts) {
     case 'undefined': this.getSSEKMS = defaultSSEKMS; break
     default: throw new TypeError('Expected opts.sseKmsKeyId to be undefined, string, or function')
   }
+
+  switch (typeof opts.tagging) {
+    case 'function': this.getTagging = opts.tagging; break
+    case 'string': this.getTagging = staticValue(opts.tagging); break
+    case 'undefined': this.getTagging = defaultTagging; break
+    default: throw new TypeError('Expected opts.tagging to be undefined, string, or function')
+  }
 }
 
 S3Storage.prototype._handleFile = function (req, file, cb) {
@@ -172,7 +182,8 @@ S3Storage.prototype._handleFile = function (req, file, cb) {
       StorageClass: opts.storageClass,
       ServerSideEncryption: opts.serverSideEncryption,
       SSEKMSKeyId: opts.sseKmsKeyId,
-      Body: (opts.replacementStream || file.stream)
+      Body: (opts.replacementStream || file.stream),
+      Tagging: opts.tagging
     }
 
     if (opts.contentDisposition) {
