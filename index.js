@@ -79,7 +79,7 @@ function collect (storage, req, file, cb) {
         replacementStream: replacementStream,
         serverSideEncryption: values[7],
         sseKmsKeyId: values[8],
-        tagging: value[9]
+        tagging: values[9]
       })
     })
   })
